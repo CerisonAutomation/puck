@@ -1,6 +1,9 @@
-import { redirect } from 'next/navigation';
+import { redirect } from "next/navigation";
 
-// Root redirects to the home page render
-export default function RootPage() {
-  redirect('/home');
+/**
+ * Root page — redirects to the editor.
+ * In production: render the published page with <Render /> instead.
+ */
+export default function Home() {
+  redirect("/edit");
 }

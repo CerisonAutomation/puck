@@ -1,0 +1,33 @@
+name: Preview Deploy Check
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/demo/**'
+      - 'packages/**'
+      - 'vercel.json'
+
+jobs:
+  lint-and-typecheck:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Type check demo
+        run: cd apps/demo && yarn tsc --noEmit
+
+      - name: Build demo
+        run: cd apps/demo && yarn build
+        env:
+          NODE_ENV: production
