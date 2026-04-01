@@ -3,25 +3,25 @@
  *
  * Stripe webhook handler for the booking engine.
  * Handled events:
- *   checkout.session.completed  → mark booking confirmed + store paymentIntentId
+ *   checkout.session.completed  → confirm booking + send confirmation email
  *   checkout.session.expired    → mark booking expired
  *   payment_intent.payment_failed → mark booking expired (edge case)
  *
- * ⚠️  This route MUST be excluded from Payload's CSRF protection.
- *     It is already safe because Stripe signs every request with STRIPE_WEBHOOK_SECRET.
- *
- * Add to vercel.json if needed:
- *   { "path": "/api/bookings/webhook", "methods": ["POST"] }
+ * Stripe signs every request — verified via STRIPE_WEBHOOK_SECRET.
+ * Handler errors return 200 to prevent Stripe retries; logged externally.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import Stripe from 'stripe'
 import config from '@payload-config'
+import { sendBookingConfirmation } from '@/lib/booking-email'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-02-24.acacia',
 })
+
+type StripeGroup = { sessionId: string; paymentIntentId: string; customerId: string; checkoutUrl: string }
 
 export async function POST(req: NextRequest) {
   const sig    = req.headers.get('stripe-signature') ?? ''
@@ -41,13 +41,15 @@ export async function POST(req: NextRequest) {
 
   try {
     switch (event.type) {
+
       // ── Payment succeeded ─────────────────────────────────────────────────
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
-        const { idempotencyKey, tenantEmail } = session.metadata ?? {}
+        const meta    = session.metadata ?? {}
+        const { idempotencyKey, tenantEmail, tenantName, propertyName, checkIn, checkOut, nights } = meta
 
         if (!idempotencyKey) {
-          console.warn('[BookingWebhook] checkout.session.completed missing idempotencyKey in metadata')
+          console.warn('[BookingWebhook] checkout.session.completed missing idempotencyKey')
           break
         }
 
@@ -65,10 +67,9 @@ export async function POST(req: NextRequest) {
 
         const booking = docs[0]!
 
-        if (booking.status === 'confirmed') {
-          // Already confirmed (duplicate webhook delivery) — idempotent, no-op
-          break
-        }
+        if (booking.status === 'confirmed') break // idempotent no-op
+
+        const existingStripe = (booking as any).stripe as Partial<StripeGroup> ?? {}
 
         await payload.update({
           collection: 'bookings',
@@ -76,18 +77,33 @@ export async function POST(req: NextRequest) {
           data: {
             status: 'confirmed',
             stripe: {
-              ...((booking as any).stripe ?? {}),
+              ...existingStripe,
               paymentIntentId: typeof session.payment_intent === 'string'
                 ? session.payment_intent
-                : (session.payment_intent?.id ?? ''),
+                : ((session.payment_intent as Stripe.PaymentIntent)?.id ?? ''),
               customerId: typeof session.customer === 'string'
                 ? session.customer
-                : (session.customer?.id ?? ''),
+                : ((session.customer as Stripe.Customer)?.id ?? ''),
             },
           },
         })
 
         console.info('[BookingWebhook] Booking confirmed:', booking.id, booking.confirmationCode)
+
+        // Send confirmation email (non-blocking — webhook must return fast)
+        if (tenantEmail) {
+          sendBookingConfirmation({
+            to:               tenantEmail,
+            tenantName:       tenantName ?? 'Valued Guest',
+            confirmationCode: String(booking.confirmationCode),
+            propertyName:     propertyName ?? 'Your Property',
+            checkIn:          checkIn?.slice(0, 10) ?? '',
+            checkOut:         checkOut?.slice(0, 10) ?? '',
+            nights:           parseInt(nights ?? '1', 10),
+            totalAmountCents: (booking.totalAmount as number) ?? 0,
+          }).catch(err => console.error('[BookingWebhook] Email send failed:', err))
+        }
+
         break
       }
 
@@ -121,14 +137,21 @@ export async function POST(req: NextRequest) {
       }
 
       // ── Payment failed ────────────────────────────────────────────────────
+      // payment_intent.payment_failed fires on card decline before session expires.
+      // Match by sessionId stored on the booking (set at create time).
       case 'payment_intent.payment_failed': {
         const pi = event.data.object as Stripe.PaymentIntent
-        // Find by paymentIntentId stored on the booking after session creation
+
+        // Find the Stripe checkout session that created this PI
+        const sessions = await stripe.checkout.sessions.list({ payment_intent: pi.id, limit: 1 })
+        const sessionId = sessions.data[0]?.id
+        if (!sessionId) break
+
         const { docs } = await payload.find({
           collection: 'bookings',
           where: {
             and: [
-              { 'stripe.paymentIntentId': { equals: pi.id } },
+              { 'stripe.sessionId': { equals: sessionId } },
               { status: { equals: 'pending_payment' } },
             ],
           },
@@ -148,12 +171,10 @@ export async function POST(req: NextRequest) {
       }
 
       default:
-        // Unhandled event — return 200 so Stripe stops retrying
         break
     }
   } catch (err) {
     console.error('[BookingWebhook] Handler error:', err)
-    // Return 200 anyway to prevent Stripe from retrying — log the error externally
     return NextResponse.json({ error: 'Handler error', received: true }, { status: 200 })
   }
 

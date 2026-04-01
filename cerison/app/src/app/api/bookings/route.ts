@@ -8,16 +8,18 @@
  *   checkIn       string   — YYYY-MM-DD
  *   checkOut      string   — YYYY-MM-DD
  *   tenant.name   string
- *   tenant.email  string
+ *   tenant.email  string   — validated as email
  *   tenant.phone? string
  *   idempotencyKey? string — client-supplied; server generates one if absent
  *
  * Returns:
  *   { bookingId, confirmationCode, checkoutUrl, totalAmount, nights }
  *
- * Idempotency:
- *   If a booking with the same idempotencyKey already exists and is not
- *   expired/cancelled, returns the existing record without creating a new one.
+ * Security:
+ *   - Zod validation on all inputs
+ *   - In-memory rate limiting (10 req / IP / 60s)
+ *   - Idempotency key dedup on retry
+ *   - DB-level conflict check (no double-booking)
  */
 
 import { NextRequest } from 'next/server'
@@ -25,12 +27,14 @@ import { getPayload } from 'payload'
 import Stripe from 'stripe'
 import config from '@payload-config'
 import {
+  CreateBookingSchema,
   parseDate,
   countNights,
   generateIdempotencyKey,
   errorResponse,
   ok,
   BookingError,
+  checkRateLimit,
 } from '@/lib/booking-utils'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -39,14 +43,21 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
+    // ── Rate limiting ─────────────────────────────────────────────────────────
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? '127.0.0.1'
+    if (!checkRateLimit(ip)) {
+      throw new BookingError('Too many requests — please wait before trying again', 429, 'RATE_LIMITED')
+    }
 
-    const { propertyId, checkIn: checkInRaw, checkOut: checkOutRaw, tenant, idempotencyKey: clientKey } = body
+    // ── Zod validation ────────────────────────────────────────────────────────
+    const rawBody = await req.json()
+    const parsed  = CreateBookingSchema.safeParse(rawBody)
+    if (!parsed.success) {
+      const message = parsed.error.issues.map(i => i.message).join('; ')
+      throw new BookingError(message, 400, 'VALIDATION_ERROR')
+    }
 
-    // ── Validate inputs ──────────────────────────────────────────────────────
-    if (!propertyId)       throw new BookingError('propertyId is required', 400, 'MISSING_PROPERTY')
-    if (!tenant?.name)     throw new BookingError('tenant.name is required', 400, 'MISSING_TENANT_NAME')
-    if (!tenant?.email)    throw new BookingError('tenant.email is required', 400, 'MISSING_TENANT_EMAIL')
+    const { propertyId, checkIn: checkInRaw, checkOut: checkOutRaw, tenant, idempotencyKey: clientKey } = parsed.data
 
     const checkIn  = parseDate(checkInRaw,  'checkIn')
     const checkOut = parseDate(checkOutRaw, 'checkOut')
@@ -80,29 +91,53 @@ export async function POST(req: NextRequest) {
       return ok({
         bookingId:        dup.id,
         confirmationCode: dup.confirmationCode,
-        checkoutUrl:      dup.stripe?.checkoutUrl ?? null,
+        checkoutUrl:      (dup as any).stripe?.checkoutUrl ?? null,
         totalAmount:      dup.totalAmount,
         nights:           dup.nights,
         duplicate:        true,
       })
     }
 
-    // ── Availability double-check (atomic guard) ─────────────────────────────
-    const { totalDocs: conflicts } = await payload.find({
-      collection: 'bookings',
-      where: {
-        and: [
-          { property: { equals: propertyId } },
-          { status:   { in: ['pending_payment', 'confirmed'] } },
-          { checkIn:  { less_than: checkOut.toISOString() } },
-          { checkOut: { greater_than: checkIn.toISOString() } },
-        ],
-      },
-      limit: 1,
+    // ── Fetch property early (needed for pricing + availability flag) ─────────
+    const property = await payload.findByID({
+      collection: 'properties',
+      id: propertyId,
       depth: 0,
     })
 
-    if (conflicts > 0) {
+    if (!property)         throw new BookingError('Property not found', 404, 'NOT_FOUND')
+    if (!property.available) throw new BookingError('Property is not available for booking', 409, 'PROPERTY_UNAVAILABLE')
+
+    // ── Availability double-check (conflict guard) ───────────────────────────
+    const [{ totalDocs: bookingConflicts }, { totalDocs: blockConflicts }] = await Promise.all([
+      payload.find({
+        collection: 'bookings',
+        where: {
+          and: [
+            { property: { equals: propertyId } },
+            { status:   { in: ['pending_payment', 'confirmed'] } },
+            { checkIn:  { less_than: checkOut.toISOString() } },
+            { checkOut: { greater_than: checkIn.toISOString() } },
+          ],
+        },
+        limit: 1,
+        depth: 0,
+      }),
+      payload.find({
+        collection: 'booking-availability-blocks',
+        where: {
+          and: [
+            { property:  { equals: propertyId } },
+            { startDate: { less_than: checkOut.toISOString() } },
+            { endDate:   { greater_than: checkIn.toISOString() } },
+          ],
+        },
+        limit: 1,
+        depth: 0,
+      }),
+    ])
+
+    if (bookingConflicts + blockConflicts > 0) {
       throw new BookingError(
         'Property is not available for the requested dates',
         409,
@@ -110,20 +145,10 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // ── Fetch property for pricing ───────────────────────────────────────────
-    const property = await payload.findByID({
-      collection: 'properties',
-      id: propertyId,
-      depth: 0,
-    })
-
-    if (!property) throw new BookingError('Property not found', 404, 'NOT_FOUND')
-    if (!property.available) throw new BookingError('Property is not available', 409, 'PROPERTY_UNAVAILABLE')
-
-    // monthlyRent is stored in USD — derive a nightly rate
+    // ── Pricing ───────────────────────────────────────────────────────────────
     const monthlyRent: number = (property.monthlyRent as number) ?? 0
-    const nightlyRateCents = Math.round((monthlyRent / 30) * 100)
-    const totalAmountCents = nightlyRateCents * nights
+    const nightlyRateCents    = Math.round((monthlyRent / 30) * 100)
+    const totalAmountCents    = nightlyRateCents * nights
 
     if (totalAmountCents <= 0) {
       throw new BookingError(
@@ -136,37 +161,51 @@ export async function POST(req: NextRequest) {
     // ── Create Stripe Checkout session ───────────────────────────────────────
     const baseUrl = process.env.NEXT_PUBLIC_SERVER_URL ?? 'http://localhost:3000'
 
-    const session = await stripe.checkout.sessions.create({
-      mode: 'payment',
-      payment_method_types: ['card'],
-      customer_email: tenant.email,
-      line_items: [
+    let session: Stripe.Checkout.Session
+    try {
+      session = await stripe.checkout.sessions.create(
         {
-          quantity: 1,
-          price_data: {
-            currency: 'usd',
-            unit_amount: totalAmountCents,
-            product_data: {
-              name: `${property.name} — ${nights} night${nights > 1 ? 's' : ''}`,
-              description: `Check-in: ${checkIn.toISOString().slice(0, 10)} · Check-out: ${checkOut.toISOString().slice(0, 10)}`,
-              images: [],
+          mode: 'payment',
+          payment_method_types: ['card'],
+          customer_email: tenant.email,
+          line_items: [
+            {
+              quantity: 1,
+              price_data: {
+                currency: 'usd',
+                unit_amount: totalAmountCents,
+                product_data: {
+                  name: `${property.name} — ${nights} night${nights > 1 ? 's' : ''}`,
+                  description: `Check-in: ${checkIn.toISOString().slice(0, 10)} · Check-out: ${checkOut.toISOString().slice(0, 10)}`,
+                  images: [],
+                },
+              },
             },
+          ],
+          metadata: {
+            propertyId,
+            propertyName: String(property.name),
+            checkIn:      checkIn.toISOString(),
+            checkOut:     checkOut.toISOString(),
+            tenantEmail:  tenant.email,
+            tenantName:   tenant.name,
+            tenantPhone:  tenant.phone ?? '',
+            idempotencyKey,
+            nights:       String(nights),
           },
+          success_url: `${baseUrl}/booking/success?session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url:  `${baseUrl}/booking/cancel?session_id={CHECKOUT_SESSION_ID}`,
         },
-      ],
-      metadata: {
-        propertyId,
-        checkIn:  checkIn.toISOString(),
-        checkOut: checkOut.toISOString(),
-        tenantEmail: tenant.email,
-        tenantName:  tenant.name,
-        tenantPhone: tenant.phone ?? '',
-        idempotencyKey,
-        nights: String(nights),
-      },
-      success_url: `${baseUrl}/booking/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url:  `${baseUrl}/booking/cancel?session_id={CHECKOUT_SESSION_ID}`,
-    }, { idempotencyKey })
+        { idempotencyKey },
+      )
+    } catch (stripeErr: any) {
+      console.error('[BookingAPI] Stripe session creation failed:', stripeErr.message)
+      throw new BookingError(
+        'Payment system is temporarily unavailable. Please try again in a moment.',
+        503,
+        'STRIPE_ERROR',
+      )
+    }
 
     // ── Persist booking in Payload ────────────────────────────────────────────
     const booking = await payload.create({

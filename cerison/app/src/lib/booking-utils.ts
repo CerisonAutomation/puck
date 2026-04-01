@@ -1,4 +1,23 @@
 import { NextResponse } from 'next/server'
+import { z } from 'zod'
+
+// ---------------------------------------------------------------------------
+// Zod schemas
+// ---------------------------------------------------------------------------
+
+export const CreateBookingSchema = z.object({
+  propertyId:     z.string().min(1, 'propertyId is required'),
+  checkIn:        z.string().min(1, 'checkIn is required'),
+  checkOut:       z.string().min(1, 'checkOut is required'),
+  idempotencyKey: z.string().optional(),
+  tenant: z.object({
+    name:  z.string().min(1, 'tenant.name is required'),
+    email: z.string().email('tenant.email must be a valid email address'),
+    phone: z.string().optional(),
+  }),
+})
+
+export type CreateBookingInput = z.infer<typeof CreateBookingSchema>
 
 // ---------------------------------------------------------------------------
 // Date helpers
@@ -17,10 +36,7 @@ export function datesOverlap(
   return aStart < bEnd && aEnd > bStart
 }
 
-/**
- * Count the number of nights between two Date objects.
- * checkOut - checkIn, floored to whole days.
- */
+/** Count the number of nights between two Date objects. */
 export function countNights(checkIn: Date, checkOut: Date): number {
   const ms = checkOut.getTime() - checkIn.getTime()
   return Math.floor(ms / (1000 * 60 * 60 * 24))
@@ -28,17 +44,16 @@ export function countNights(checkIn: Date, checkOut: Date): number {
 
 /**
  * Parse a YYYY-MM-DD or ISO string into a UTC midnight Date.
- * Throws a descriptive error if the string is invalid.
+ * Throws a descriptive BookingError if the string is invalid.
  */
 export function parseDate(raw: unknown, fieldName: string): Date {
   if (typeof raw !== 'string' || !raw) {
-    throw new BookingError(`${fieldName} must be a non-empty date string`, 400)
+    throw new BookingError(`${fieldName} must be a non-empty date string`, 400, 'INVALID_DATE')
   }
   const d = new Date(raw)
   if (isNaN(d.getTime())) {
-    throw new BookingError(`${fieldName} is not a valid date: "${raw}"`, 400)
+    throw new BookingError(`${fieldName} is not a valid date: "${raw}"`, 400, 'INVALID_DATE')
   }
-  // Normalise to UTC midnight so comparisons are day-accurate
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()))
 }
 
@@ -48,7 +63,7 @@ export function parseDate(raw: unknown, fieldName: string): Date {
 
 /**
  * Generate a stable idempotency key from booking inputs.
- * Safe to pass from client on retry — server re-hashes and compares.
+ * NOTE: does NOT embed Date.now() so the key is truly stable for retries.
  */
 export function generateIdempotencyKey(
   propertyId: string,
@@ -57,12 +72,27 @@ export function generateIdempotencyKey(
   tenantEmail: string,
 ): string {
   const raw = `${propertyId}|${checkIn.toISOString()}|${checkOut.toISOString()}|${tenantEmail.toLowerCase()}`
-  // Simple deterministic hash (no crypto dependency needed for this use-case)
   let hash = 0
   for (let i = 0; i < raw.length; i++) {
     hash = (Math.imul(31, hash) + raw.charCodeAt(i)) | 0
   }
-  return `idem_${Math.abs(hash).toString(36)}_${Date.now().toString(36)}`
+  return `idem_${Math.abs(hash).toString(36)}`
+}
+
+// ---------------------------------------------------------------------------
+// Rate limiting (in-memory, edge-safe simple sliding window)
+// ---------------------------------------------------------------------------
+
+const rateLimitMap = new Map<string, number[]>()
+const RATE_WINDOW_MS = 60_000   // 1 minute
+const RATE_LIMIT     = 10       // max requests per IP per window
+
+export function checkRateLimit(ip: string): boolean {
+  const now   = Date.now()
+  const times = (rateLimitMap.get(ip) ?? []).filter(t => now - t < RATE_WINDOW_MS)
+  times.push(now)
+  rateLimitMap.set(ip, times)
+  return times.length <= RATE_LIMIT
 }
 
 // ---------------------------------------------------------------------------
@@ -89,6 +119,15 @@ export function errorResponse(err: unknown): NextResponse {
     return NextResponse.json(
       { error: err.message, code: err.code ?? 'BOOKING_ERROR' },
       { status: err.statusCode },
+    )
+  }
+  // Zod validation error
+  if (err && typeof err === 'object' && 'issues' in err) {
+    const issues = (err as any).issues
+    const message = issues.map((i: any) => i.message).join('; ')
+    return NextResponse.json(
+      { error: message, code: 'VALIDATION_ERROR' },
+      { status: 400 },
     )
   }
   console.error('[BookingAPI] Unhandled error:', err)

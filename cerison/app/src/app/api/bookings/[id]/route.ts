@@ -1,18 +1,24 @@
 /**
- * GET  /api/bookings/[id]  — fetch a single booking (auth required)
- * PATCH /api/bookings/[id]  — cancel a booking   (auth required)
+ * GET   /api/bookings/[id]  — fetch a single booking (Payload auth required)
+ * PATCH /api/bookings/[id]  — cancel or refund a booking (Payload auth required)
  *
  * PATCH body:
  *   { action: 'cancel', reason?: string }
+ *   { action: 'refund' }  — issues Stripe refund + marks cancelled
  *
- * Only bookings in 'pending_payment' or 'confirmed' status can be cancelled.
- * Cancellation does NOT automatically refund Stripe — handle refunds separately.
+ * Cancellation: sets status → 'cancelled'.
+ * Refund: issues full Stripe refund then sets status → 'cancelled'.
  */
 
 import { NextRequest } from 'next/server'
 import { getPayload } from 'payload'
+import Stripe from 'stripe'
 import config from '@payload-config'
 import { errorResponse, ok, BookingError } from '@/lib/booking-utils'
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2025-02-24.acacia',
+})
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -29,11 +35,12 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
     if (!booking) throw new BookingError('Booking not found', 404, 'NOT_FOUND')
 
-    // Omit internal Stripe secrets from public response
-    const { stripe, ...safe } = booking as any
+    const { stripe: stripeData, ...safe } = booking as any
     return ok({
       ...safe,
-      stripe: stripe?.sessionId ? { sessionId: stripe.sessionId, checkoutUrl: stripe.checkoutUrl ?? null } : undefined,
+      stripe: stripeData?.sessionId
+        ? { sessionId: stripeData.sessionId, checkoutUrl: stripeData.checkoutUrl ?? null }
+        : undefined,
     })
   } catch (err) {
     return errorResponse(err)
@@ -46,21 +53,14 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     const body   = await req.json()
     const { action, reason } = body
 
-    if (action !== 'cancel') {
-      throw new BookingError(`Unknown action: "${action}". Supported: cancel`, 400, 'UNKNOWN_ACTION')
+    if (!['cancel', 'refund'].includes(action)) {
+      throw new BookingError(`Unknown action: "${action}". Supported: cancel, refund`, 400, 'UNKNOWN_ACTION')
     }
 
     const payload = await getPayload({ config })
 
-    // ── Verify auth (Payload session cookie or Bearer token) ─────────────────
-    // For server-to-server calls pass X-Payload-Token header.
-    // For browser calls the Payload auth cookie is forwarded automatically.
-    const authHeader = req.headers.get('authorization')
-    const user       = authHeader
-      ? await payload.auth({ headers: req.headers })
-      : null
-
-    if (!user) throw new BookingError('Authentication required', 401, 'UNAUTHORIZED')
+    const user = await payload.auth({ headers: req.headers })
+    if (!user?.user) throw new BookingError('Authentication required', 401, 'UNAUTHORIZED')
 
     const booking = await payload.findByID({
       collection: 'bookings',
@@ -79,12 +79,33 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       )
     }
 
+    // ── Stripe refund ─────────────────────────────────────────────────────────
+    if (action === 'refund') {
+      const stripeData = (booking as any).stripe
+      if (!stripeData?.paymentIntentId) {
+        throw new BookingError(
+          'Cannot refund: no PaymentIntent found on this booking. Was the payment completed?',
+          409,
+          'NO_PAYMENT_INTENT',
+        )
+      }
+      try {
+        await stripe.refunds.create({ payment_intent: stripeData.paymentIntentId })
+      } catch (stripeErr: any) {
+        throw new BookingError(
+          `Stripe refund failed: ${stripeErr.message}`,
+          502,
+          'STRIPE_REFUND_FAILED',
+        )
+      }
+    }
+
     const updated = await payload.update({
       collection: 'bookings',
       id,
       data: {
         status:             'cancelled',
-        cancellationReason: reason ?? 'Cancelled by user',
+        cancellationReason: reason ?? (action === 'refund' ? 'Refunded by admin' : 'Cancelled by user'),
       },
     })
 

@@ -1,8 +1,12 @@
+/**
+ * GET /api/healthz
+ * Lightweight health-check endpoint for Vercel/uptime monitors.
+ * Returns 200 { ok: true, ts } when the runtime is healthy.
+ */
 import { NextResponse } from 'next/server'
 
-export async function GET() {
-  return NextResponse.json(
-    { status: 'ok', timestamp: new Date().toISOString(), version: process.env.npm_package_version ?? '1.0.0' },
-    { status: 200 }
-  )
+export const dynamic = 'force-dynamic'
+
+export function GET() {
+  return NextResponse.json({ ok: true, ts: new Date().toISOString() })
 }
