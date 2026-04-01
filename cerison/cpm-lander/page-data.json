@@ -1,0 +1,127 @@
+{
+  "root": {
+    "props": {
+      "title": "Christian Property Management | Princeton, WV",
+      "description": "Faith-driven property management across southern West Virginia. Rentals, lease-to-own programs, and management services you can trust.",
+      "ogImage": ""
+    }
+  },
+  "content": [
+    {
+      "type": "CinematicHero",
+      "props": {
+        "eyebrow": "Faith · Community · Excellence",
+        "headline": "Property Management",
+        "headlineGold": "You Can Trust",
+        "subheadline": "Serving southern West Virginia with integrity for over 20 years. Rentals, lease-to-own programs, and full-service property management built on Christian values.",
+        "ctaPrimaryLabel": "View Available Properties",
+        "ctaPrimaryHref": "#properties",
+        "ctaSecondaryLabel": "Call (304) 589-5789",
+        "ctaSecondaryHref": "tel:3045895789",
+        "backgroundImage": "https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=1600&q=80",
+        "overlayOpacity": 0.72,
+        "showCross": true
+      }
+    },
+    {
+      "type": "TrustBar",
+      "props": {
+        "items": "[{\"icon\":\"✝\",\"label\":\"Faith-Driven Management\"},{\"icon\":\"🏠\",\"label\":\"20+ Years Experience\"},{\"icon\":\"📍\",\"label\":\"Princeton, WV\"},{\"icon\":\"🔑\",\"label\":\"Lease-to-Own Programs\"},{\"icon\":\"⭐\",\"label\":\"Community-Focused\"}]"
+      }
+    },
+    {
+      "type": "ServicesGrid",
+      "props": {
+        "eyebrow": "What We Offer",
+        "headline": "Full-Service Property Management",
+        "dark": true,
+        "columns": 3,
+        "items": "[{\"icon\":\"🏡\",\"title\":\"Residential Rentals\",\"description\":\"Carefully maintained single-family homes and multi-unit properties across Princeton, Bluefield, and Beckley — ready for immediate occupancy.\"},{\"icon\":\"📝\",\"title\":\"Lease Option (Path to Ownership)\",\"description\":\"Our exclusive Lease Option Program gives qualified tenants a structured path toward homeownership. Build equity while you rent.\"},{\"icon\":\"🏢\",\"title\":\"Executive Short-Term Rentals\",\"description\":\"Fully furnished executive accommodations for business travelers, relocations, and extended stays. Premium comfort, flexible terms.\"},{\"icon\":\"📊\",\"title\":\"Rent Collection & Bookkeeping\",\"description\":\"Automated rent collection, accounts payable processing, and detailed financial reporting. Your cash flow managed professionally.\"},{\"icon\":\"🔧\",\"title\":\"Property Maintenance\",\"description\":\"Preventive maintenance schedules, rapid repair response, and trusted contractor relationships keep your property value protected.\"},{\"icon\":\"🤝\",\"title\":\"We Buy Properties\",\"description\":\"Looking to sell? We purchase residential and commercial properties directly — fast, fair, and straightforward. No agent fees.\"}]"
+      }
+    },
+    {
+      "type": "PropertyShowcase",
+      "props": {
+        "eyebrow": "Available Now",
+        "headline": "Find Your Next Home",
+        "subheadline": "Carefully maintained properties across Mercer County. Every home meets our Christian standards of quality and care.",
+        "ctaLabel": "View All Properties",
+        "ctaHref": "https://christianpropertymanagement.com",
+        "properties": "[{\"image\":\"https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=600&q=80\",\"label\":\"Available Now\",\"address\":\"Princeton, WV 24740\",\"beds\":3,\"baths\":2,\"price\":\"$950/mo\",\"tag\":\"For Rent\"},{\"image\":\"https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=600&q=80\",\"label\":\"Lease-to-Own\",\"address\":\"Bluefield, WV 24701\",\"beds\":4,\"baths\":2,\"price\":\"$1,150/mo\",\"tag\":\"Lease Option\"},{\"image\":\"https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=600&q=80\",\"label\":\"Executive Suite\",\"address\":\"Beckley, WV 25801\",\"beds\":2,\"baths\":1,\"price\":\"$1,400/mo\",\"tag\":\"Short-Term\"}]"
+      }
+    },
+    {
+      "type": "StatsCounter",
+      "props": {
+        "eyebrow": "By The Numbers",
+        "dark": false,
+        "stats": "[{\"value\":\"20\",\"suffix\":\"+\",\"label\":\"Years of Service\"},{\"value\":\"200\",\"suffix\":\"+\",\"label\":\"Properties Managed\"},{\"value\":\"500\",\"suffix\":\"+\",\"label\":\"Families Housed\"},{\"value\":\"98\",\"suffix\":\"%\",\"label\":\"Tenant Satisfaction\"}]"
+      }
+    },
+    {
+      "type": "LeasePathway",
+      "props": {
+        "eyebrow": "Lease Option Program",
+        "headline": "Your Path to Home Ownership",
+        "body": "We believe everyone deserves a place to call home. Our Lease Option Path to Home Ownership Program is designed for families who want to own but need time to build toward that goal.",
+        "ctaLabel": "Learn About the Program",
+        "ctaHref": "tel:3045895789",
+        "imageUrl": "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&q=80",
+        "steps": "[{\"number\":\"01\",\"title\":\"Apply & Qualify\",\"description\":\"Complete our straightforward application. We review your situation holistically — not just credit scores.\"},{\"number\":\"02\",\"title\":\"Choose Your Home\",\"description\":\"Select from our lease-option eligible properties. Tour at your convenience.\"},{\"number\":\"03\",\"title\":\"Move In & Build Equity\",\"description\":\"A portion of every monthly payment credits toward your future purchase. Live in your home while building toward owning it.\"},{\"number\":\"04\",\"title\":\"Exercise Your Option\",\"description\":\"When you're ready, exercise your purchase option at the agreed price. We guide you through the closing process.\"}]"
+      }
+    },
+    {
+      "type": "Testimonials",
+      "props": {
+        "eyebrow": "Testimonials",
+        "headline": "What Our Tenants Say",
+        "dark": true,
+        "items": "[{\"quote\":\"Christian Property Management treated us like family from day one. The lease-to-own program changed our lives — we now own the home we started renting five years ago.\",\"author\":\"Marcus & Latoya J.\",\"role\":\"Princeton, WV\",\"avatar\":\"\"},{\"quote\":\"Response time on maintenance is unmatched. They genuinely care about the properties and about us as tenants. You can feel the difference when a company operates on Christian values.\",\"author\":\"Sandra K.\",\"role\":\"Bluefield, WV\",\"avatar\":\"\"},{\"quote\":\"I needed short-term executive housing during my assignment in southern WV. The property was spotless, fully equipped, and the team was professional every step of the way.\",\"author\":\"James T.\",\"role\":\"Corporate Tenant\",\"avatar\":\"\"}]"
+      }
+    },
+    {
+      "type": "TeamSection",
+      "props": {
+        "eyebrow": "Our Team",
+        "headline": "People Who Care About Your Home",
+        "body": "Located at 500 Thorn Street, Princeton, WV — our team is available in-person, by phone, or text. We operate with transparency and treat every property as if it were our own.",
+        "members": "[{\"name\":\"Christian Management Corp\",\"role\":\"Principal Management Office\",\"bio\":\"Serving Mercer County and surrounding areas since 2004. Specialising in residential management, lease options, and community development.\",\"image\":\"\"}]"
+      }
+    },
+    {
+      "type": "FAQAccordion",
+      "props": {
+        "eyebrow": "FAQ",
+        "headline": "Common Questions",
+        "dark": false,
+        "items": "[{\"question\":\"How do I apply for a rental?\",\"answer\":\"You can apply online through the listing page, stop by our office at 500 Thorn Street in Princeton, or pick up a paper application available 24/7 on our office door.\"},{\"question\":\"What is the Lease Option Program?\",\"answer\":\"Our Lease Option (Path to Home Ownership) Program lets qualified tenants rent a property with the option to purchase it at an agreed future price. A portion of monthly payments is credited toward the purchase.\"},{\"question\":\"Do you offer short-term rentals?\",\"answer\":\"Yes. We offer fully furnished Executive Short-Term Rentals ideal for business travelers, contractors, and families in transition. Flexible terms available — call or text (304) 589-5789.\"},{\"question\":\"How quickly are maintenance requests handled?\",\"answer\":\"We prioritize maintenance and emergency repairs. Routine requests are typically addressed within 2–5 business days. Emergency maintenance is available around the clock.\"},{\"question\":\"Do you buy properties?\",\"answer\":\"Yes. We purchase residential and commercial properties directly in southern West Virginia. If you are looking to sell, contact us for a fair, obligation-free offer.\"},{\"question\":\"Where is your office?\",\"answer\":\"Our main office is located at 500 Thorn Street, Princeton, WV 24740. Applications and documentation can be dropped in our secure drop box after hours.\"}]"
+      }
+    },
+    {
+      "type": "CTABanner",
+      "props": {
+        "headline": "Ready to Find Your",
+        "headlineGold": "New Home?",
+        "body": "Call or text us today. Applications available 24/7 at our Princeton office — or apply online in minutes.",
+        "ctaPrimaryLabel": "Apply Now",
+        "ctaPrimaryHref": "https://christianpropertymanagement.com",
+        "ctaSecondaryLabel": "Schedule a Viewing",
+        "ctaSecondaryHref": "tel:3045895789",
+        "backgroundImage": "https://images.unsplash.com/photo-1449844908441-8829872d2607?w=1400&q=80",
+        "phone": "(304) 589-5789"
+      }
+    },
+    {
+      "type": "FooterBlock",
+      "props": {
+        "logo": "Christian Property Management",
+        "tagline": "We don't just rent properties — we build communities.",
+        "address": "500 Thorn Street, Princeton, WV 24740",
+        "phone": "(304) 589-5789",
+        "email": "PropertyManager@ChristianMgtCorp.Com",
+        "copyright": "© 2026 Christian Management Corporation. All rights reserved.",
+        "links": "[{\"label\":\"Available Properties\",\"href\":\"#properties\"},{\"label\":\"Lease Option Program\",\"href\":\"#lease\"},{\"label\":\"Apply Now\",\"href\":\"https://christianpropertymanagement.com\"},{\"label\":\"Contact Us\",\"href\":\"tel:3045895789\"}]"
+      }
+    }
+  ]
+}
