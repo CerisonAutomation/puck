@@ -1,15 +1,17 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "installCommand": "npm install --legacy-peer-deps",
-  "buildCommand": "npm run build",
+  "installCommand": "pnpm install",
+  "buildCommand": "pnpm build",
   "outputDirectory": ".next",
-  "regions": ["iad1"],
+  "regions": ["cdg1"],
   "functions": {
-    "src/app/api/guesty/**": { "maxDuration": 60 },
-    "src/app/api/stripe/**": { "maxDuration": 30 },
-    "src/app/api/payload/**": { "maxDuration": 60 },
-    "src/app/api/**": { "maxDuration": 60 }
+    "src/app/api/bookings/route.ts": { "maxDuration": 30 },
+    "src/app/api/bookings/webhook/route.ts": { "maxDuration": 30 },
+    "src/app/api/bookings/availability/route.ts": { "maxDuration": 15 },
+    "src/app/api/bookings/[id]/route.ts": { "maxDuration": 15 },
+    "src/app/api/healthz/route.ts": { "maxDuration": 5 },
+    "src/app/api/[...slug]/route.ts": { "maxDuration": 60 }
   },
   "headers": [
     {
