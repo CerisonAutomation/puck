@@ -3,6 +3,10 @@
   "installCommand": "npm install --legacy-peer-deps",
   "buildCommand": "npm run build",
   "framework": "nextjs",
+  "env": {
+    "COREPACK_ENABLE_AUTO_PIN": "0",
+    "ENABLE_EXPERIMENTAL_COREPACK": "0"
+  },
   "functions": {
     "src/app/**/*.tsx": { "maxDuration": 30 },
     "src/app/api/**/*.ts": { "maxDuration": 30 }

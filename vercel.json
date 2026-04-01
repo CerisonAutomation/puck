@@ -1,10 +1,15 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "cd cerison/app && npm install --legacy-peer-deps && npm run build",
-  "installCommand": "cd cerison/app && npm install --legacy-peer-deps",
+  "installCommand": "echo 'install handled in buildCommand'",
   "outputDirectory": "cerison/app/.next",
   "framework": "nextjs",
   "regions": ["iad1"],
+  "env": {
+    "COREPACK_ENABLE_AUTO_PIN": "0",
+    "ENABLE_EXPERIMENTAL_COREPACK": "0",
+    "NPM_FLAGS": "--legacy-peer-deps"
+  },
   "headers": [
     {
       "source": "/_next/static/(.*)",
