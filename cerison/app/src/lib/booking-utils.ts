@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 
 // ---------------------------------------------------------------------------
@@ -6,10 +6,10 @@ import { z } from 'zod'
 // ---------------------------------------------------------------------------
 
 export const CreateBookingSchema = z.object({
-  propertyId:     z.string().min(1, 'propertyId is required'),
-  checkIn:        z.string().min(1, 'checkIn is required'),
-  checkOut:       z.string().min(1, 'checkOut is required'),
-  idempotencyKey: z.string().optional(),
+  propertyId:      z.string().min(1, 'propertyId is required'),
+  checkIn:         z.string().min(1, 'checkIn is required'),
+  checkOut:        z.string().min(1, 'checkOut is required'),
+  idempotencyKey:  z.string().optional(),
   tenant: z.object({
     name:  z.string().min(1, 'tenant.name is required'),
     email: z.string().email('tenant.email must be a valid email address'),
@@ -80,12 +80,33 @@ export function generateIdempotencyKey(
 }
 
 // ---------------------------------------------------------------------------
-// Rate limiting (in-memory, edge-safe simple sliding window)
+// IP extraction (spoofing-safe on Vercel)
+// ---------------------------------------------------------------------------
+
+/**
+ * Extract the real client IP from a Vercel-proxied request.
+ *
+ * On Vercel:
+ *  - x-real-ip  is set by Vercel's edge and CANNOT be spoofed by the client.
+ *  - x-forwarded-for first entry CAN be spoofed when Vercel protection bypass is used.
+ *
+ * Falls back to x-forwarded-for[0] only for local dev.
+ */
+export function getClientIP(req: NextRequest): string {
+  // Vercel-injected, cannot be spoofed
+  const realIp = req.headers.get('x-real-ip')
+  if (realIp) return realIp.trim()
+  // Local dev fallback
+  return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? '127.0.0.1'
+}
+
+// ---------------------------------------------------------------------------
+// Rate limiting (in-memory, per-process sliding window)
 // ---------------------------------------------------------------------------
 
 const rateLimitMap = new Map<string, number[]>()
-const RATE_WINDOW_MS = 60_000   // 1 minute
-const RATE_LIMIT     = 10       // max requests per IP per window
+const RATE_WINDOW_MS = 60_000 // 1 minute
+const RATE_LIMIT     = 10     // max requests per IP per window
 
 export function checkRateLimit(ip: string): boolean {
   const now   = Date.now()
@@ -123,8 +144,8 @@ export function errorResponse(err: unknown): NextResponse {
   }
   // Zod validation error
   if (err && typeof err === 'object' && 'issues' in err) {
-    const issues = (err as any).issues
-    const message = issues.map((i: any) => i.message).join('; ')
+    const issues  = (err as { issues: { message: string }[] }).issues
+    const message = issues.map(i => i.message).join('; ')
     return NextResponse.json(
       { error: message, code: 'VALIDATION_ERROR' },
       { status: 400 },
