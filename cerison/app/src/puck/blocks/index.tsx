@@ -1,0 +1,13 @@
+// All 12 Puck blocks for CPM — barrel export
+export { HeroCinematic } from './HeroCinematic'
+export { TrustBar } from './TrustBar'
+export { ServicesGrid } from './ServicesGrid'
+export { WhySplit } from './WhySplit'
+export { TestimonialCinema } from './TestimonialCinema'
+export { ProcessTimeline } from './ProcessTimeline'
+export { PricingPlans } from './PricingPlans'
+export { FAQAccordion } from './FAQAccordion'
+export { ContactForm } from './ContactForm'
+export { CTABanner } from './CTABanner'
+export { PropertyShowcase } from './PropertyShowcase'
+export { BookDirect } from './BookDirect'
