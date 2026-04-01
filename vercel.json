@@ -1,18 +1,25 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "cd apps/demo && yarn build",
-  "outputDirectory": "apps/demo/.next",
-  "installCommand": "yarn install --frozen-lockfile",
   "framework": "nextjs",
-  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- apps/demo packages",
+  "rootDirectory": "cerison/app",
+  "installCommand": "npm install --legacy-peer-deps",
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- cerison/",
+  "regions": ["iad1"],
+  "functions": {
+    "src/app/api/**": {
+      "maxDuration": 60
+    }
+  },
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
+        { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
         { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "X-XSS-Protection", "value": "1; mode=block" },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "X-XSS-Protection", "value": "1; mode=block" },
         { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" }
       ]
     },
@@ -30,9 +37,10 @@
     }
   ],
   "rewrites": [
-    {
-      "source": "/healthz",
-      "destination": "/api/healthz"
-    }
-  ]
+    { "source": "/admin/(.*)", "destination": "/admin/$1" },
+    { "source": "/healthz", "destination": "/api/healthz" }
+  ],
+  "env": {
+    "NEXT_TELEMETRY_DISABLED": "1"
+  }
 }
