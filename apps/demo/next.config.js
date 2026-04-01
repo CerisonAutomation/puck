@@ -1,10 +1,7 @@
 /** @type {import('next').NextConfig} */
 module.exports = {
   reactStrictMode: true,
-  transpilePackages: ["@puckeditor/core", "lucide-react"],
-  experimental: {
-    optimizePackageImports: ["lucide-react", "@puckeditor/core"],
-  },
+  transpilePackages: ["@measured/puck"],
   images: {
     formats: ["image/avif", "image/webp"],
     remotePatterns: [],
@@ -13,18 +10,4 @@ module.exports = {
     removeConsole: process.env.NODE_ENV === "production",
   },
   poweredByHeader: false,
-  compress: true,
-  async headers() {
-    return [
-      {
-        source: "/edit/:path*",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "no-store, must-revalidate",
-          },
-        ],
-      },
-    ];
-  },
-};
+}
