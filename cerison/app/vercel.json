@@ -1,14 +1,15 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "installCommand": "npm install",
+  "installCommand": "npm install --legacy-peer-deps",
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
   "regions": ["iad1"],
   "functions": {
-    "src/app/api/**": {
-      "maxDuration": 60
-    }
+    "src/app/api/guesty/**": { "maxDuration": 60 },
+    "src/app/api/stripe/**": { "maxDuration": 30 },
+    "src/app/api/payload/**": { "maxDuration": 60 },
+    "src/app/api/**": { "maxDuration": 60 }
   },
   "headers": [
     {
@@ -16,7 +17,16 @@
       "headers": [
         { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
         { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "X-XSS-Protection", "value": "1; mode=block" },
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" },
+        { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains; preload" }
+      ]
+    },
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, max-age=0" }
       ]
     },
     {
@@ -24,10 +34,18 @@
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
       ]
+    },
+    {
+      "source": "/admin/(.*)",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
+      ]
     }
   ],
   "rewrites": [
-    { "source": "/admin/(.*)", "destination": "/admin/$1" }
+    { "source": "/admin", "destination": "/admin" },
+    { "source": "/admin/(.*)", "destination": "/admin/$1" },
+    { "source": "/healthz", "destination": "/api/healthz" }
   ],
   "env": {
     "NEXT_TELEMETRY_DISABLED": "1"
