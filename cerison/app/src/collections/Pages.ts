@@ -8,71 +8,39 @@ export const Pages: CollectionConfig = {
     group: 'Content',
     livePreview: {
       url: ({ data }) =>
-        `${process.env.NEXT_PUBLIC_SERVER_URL}/api/preview?secret=${process.env.PREVIEW_SECRET}&slug=${data.slug}`,
+        `${process.env.NEXT_PUBLIC_SERVER_URL ?? 'http://localhost:3000'}/${data?.slug ?? ''}`,
     },
-  },
-  access: {
-    read: ({ req }) => {
-      if (req.user) return true
-      return { status: { equals: 'published' } }
-    },
-    create: ({ req }) => Boolean(req.user),
-    update: ({ req }) => Boolean(req.user),
-    delete: ({ req }) => Boolean(req.user),
   },
   versions: {
-    drafts: { autosave: { interval: 5000 } },
-    maxPerDoc: 25,
+    drafts: { autosave: { interval: 800 } },
+    maxPerDoc: 20,
+  },
+  access: {
+    read:   () => true,
+    create: ({ req }) => !!req.user,
+    update: ({ req }) => !!req.user,
+    delete: ({ req }) => req.user?.role === 'admin',
   },
   fields: [
-    { name: 'title', type: 'text', required: true },
-    {
-      name: 'slug',
-      type: 'text',
-      required: true,
-      unique: true,
-      index: true,
-      admin: { position: 'sidebar' },
-    },
-    {
-      name: 'status',
-      type: 'select',
+    { name: 'title',   type: 'text',     required: true },
+    { name: 'slug',    type: 'text',     required: true, unique: true, index: true,
+      admin: { position: 'sidebar' } },
+    { name: 'status',  type: 'select',   required: true,
+      defaultValue: 'draft',
       options: [
-        { label: 'Draft', value: 'draft' },
+        { label: 'Draft',     value: 'draft' },
         { label: 'Published', value: 'published' },
       ],
-      defaultValue: 'draft',
       admin: { position: 'sidebar' },
     },
+    { name: 'excerpt', type: 'textarea', admin: { position: 'sidebar' } },
     {
       name: 'puckData',
       type: 'json',
+      label: 'Page Builder Data',
       admin: {
-        description: 'Visual layout managed by Puck editor — use /admin/puck/[slug] to edit',
+        description: 'Managed by the Puck visual editor — do not edit directly.',
       },
     },
-    {
-      name: 'excerpt',
-      type: 'textarea',
-      admin: { position: 'sidebar' },
-    },
-    {
-      name: 'featuredImage',
-      type: 'upload',
-      relationTo: 'media',
-      admin: { position: 'sidebar' },
-    },
-    {
-      name: 'meta',
-      type: 'group',
-      label: 'SEO Metadata',
-      admin: { position: 'sidebar' },
-      fields: [
-        { name: 'title', type: 'text', label: 'Meta Title' },
-        { name: 'description', type: 'textarea', label: 'Meta Description' },
-        { name: 'noIndex', type: 'checkbox', defaultValue: false },
-      ],
-    },
   ],
-  timestamps: true,
 }

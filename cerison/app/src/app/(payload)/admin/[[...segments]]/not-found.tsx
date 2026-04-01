@@ -1,2 +1,1 @@
-/* THIS FILE IS REQUIRED — DO NOT DELETE */
-export { default } from '@payloadcms/next/views'
+export { NotFoundPage as default } from '@payloadcms/next/views'

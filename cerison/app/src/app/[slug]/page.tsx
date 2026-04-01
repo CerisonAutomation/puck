@@ -2,7 +2,8 @@ import { notFound } from 'next/navigation'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { Render } from '@measured/puck'
-import { puckConfig } from '@/puck/config'
+import { puckConfig } from '@/puck/config.tsx'
+import '@measured/puck/puck.css'
 
 export const revalidate = 60
 
@@ -39,12 +40,8 @@ export default async function SlugPage({ params }: Props) {
 export async function generateStaticParams() {
   try {
     const payload = await getPayload({ config: configPromise })
-    const pages = await payload.find({
-      collection: 'pages',
-      limit: 200,
-      depth: 0,
-    })
-    return pages.docs.map((page: any) => ({ slug: page.slug as string }))
+    const pages = await payload.find({ collection: 'pages', limit: 200, depth: 0 })
+    return pages.docs.map((p: any) => ({ slug: p.slug as string }))
   } catch {
     return []
   }
@@ -62,8 +59,13 @@ export async function generateMetadata({ params }: Props) {
     })
     const page = result.docs[0] as any
     return {
-      title: page?.title ?? slug,
-      description: page?.excerpt ?? '',
+      title: page?.meta?.title ?? page?.title ?? slug,
+      description: page?.meta?.description ?? page?.excerpt ?? '',
+      openGraph: {
+        title: page?.meta?.title ?? page?.title ?? slug,
+        description: page?.meta?.description ?? '',
+        url: `${process.env.NEXT_PUBLIC_SERVER_URL ?? ''}/${slug}`,
+      },
     }
   } catch {
     return { title: slug }
