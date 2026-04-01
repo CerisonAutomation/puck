@@ -28,6 +28,7 @@
     "@payloadcms/plugin-redirects": "3.28.1",
     "@payloadcms/plugin-nested-docs": "3.28.1",
     "@payloadcms/plugin-search": "3.28.1",
+    "@delmaredigital/payload-puck": "0.6.22",
     "@measured/puck": "0.20.1",
     "@measured/puck-plugin-heading-analyzer": "0.20.1",
     "@measured/puck-plugin-emotion-cache": "0.20.1",
