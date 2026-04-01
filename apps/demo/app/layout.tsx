@@ -1,25 +1,21 @@
-import "@/core/styles.css";
+import type { Metadata } from "next";
 import "./styles.css";
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export const metadata: Metadata = {
+  title: "Puck Editor — CerisonAutomation",
+  description: "Production-ready visual page builder powered by Puck v0.20.",
+  robots: { index: false, follow: false },
+  openGraph: {
+    title: "Puck Editor",
+    description: "Drag-and-drop page builder built on @measured/puck",
+    type: "website",
+  },
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <head>
-        {process.env.NEXT_PUBLIC_PLAUSIBLE_DATA_DOMAIN && (
-          <script
-            defer
-            data-domain={process.env.NEXT_PUBLIC_PLAUSIBLE_DATA_DOMAIN}
-            src="https://plausible.io/js/plausible.js"
-          ></script>
-        )}
-      </head>
-      <body>
-        <div>{children}</div>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
