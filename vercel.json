@@ -3,6 +3,5 @@
   "framework": "nextjs",
   "installCommand": "yarn install",
   "buildCommand": "cd apps/demo && yarn build",
-  "outputDirectory": "apps/demo/.next",
-  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- apps/demo/"
+  "outputDirectory": "apps/demo/.next"
 }
