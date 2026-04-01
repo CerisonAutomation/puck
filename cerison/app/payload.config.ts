@@ -13,11 +13,13 @@ import sharp from 'sharp'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
-import { Pages } from './src/collections/Pages'
-import { Properties } from './src/collections/Properties'
-import { Testimonials } from './src/collections/Testimonials'
-import { Media } from './src/collections/Media'
-import { Users } from './src/collections/Users'
+import { Pages }                    from './src/collections/Pages'
+import { Properties }               from './src/collections/Properties'
+import { Testimonials }             from './src/collections/Testimonials'
+import { Media }                    from './src/collections/Media'
+import { Users }                    from './src/collections/Users'
+import { Bookings }                 from './src/collections/Bookings'
+import { BookingAvailabilityBlocks } from './src/collections/BookingAvailabilityBlocks'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -33,7 +35,7 @@ export default buildConfig({
     components: {},
   },
 
-  collections: [Pages, Properties, Testimonials, Media, Users],
+  collections: [Pages, Properties, Testimonials, Media, Users, Bookings, BookingAvailabilityBlocks],
 
   editor: lexicalEditor(),
 
@@ -56,9 +58,12 @@ export default buildConfig({
       stripeSecretKey: process.env.STRIPE_SECRET_KEY ?? '',
       stripeWebhooksEndpointSecret: process.env.STRIPE_WEBHOOK_SECRET ?? '',
       webhooks: {
+        // General platform webhooks (subscriptions etc.)
         'checkout.session.completed': async ({ event, payload }) => {
           const session = event.data.object as any
-          payload.logger.info({ msg: 'Payment complete', session: session.id })
+          payload.logger.info({ msg: 'Payment complete (platform hook)', session: session.id })
+          // NOTE: booking-specific logic is handled in /api/bookings/webhook
+          // to keep concerns separated and allow raw body verification.
         },
         'customer.subscription.updated': async ({ event, payload }) => {
           payload.logger.info({ msg: 'Subscription updated', id: (event.data.object as any).id })
