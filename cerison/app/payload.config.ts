@@ -3,7 +3,6 @@ import { postgresAdapter } from '@payloadcms/db-postgres'
 import { vercelBlobStorage } from '@payloadcms/storage-vercel-blob'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import { resendAdapter } from '@payloadcms/email-resend'
-import { stripePlugin } from '@payloadcms/plugin-stripe'
 import { seoPlugin } from '@payloadcms/plugin-seo'
 import { formBuilderPlugin } from '@payloadcms/plugin-form-builder'
 import { redirectsPlugin } from '@payloadcms/plugin-redirects'
@@ -24,6 +23,12 @@ import { BookingAvailabilityBlocks } from './src/collections/BookingAvailability
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
+const DATABASE_URI =
+  process.env.DATABASE_URI ??
+  process.env.POSTGRES_URL ??
+  process.env.DATABASE_URL ??
+  ''
+
 export default buildConfig({
   admin: {
     user: Users.slug,
@@ -32,40 +37,28 @@ export default buildConfig({
       favicon: '/favicon.ico',
       ogImage: '/og.jpg',
     },
-    components: {
-      providers: ['@/components/admin/PuckProvider'],
-    },
   },
-  collections: [Pages, Properties, Testimonials, Media, Users, Bookings, BookingAvailabilityBlocks],
+  collections: [
+    Pages,
+    Properties,
+    Testimonials,
+    Media,
+    Users,
+    Bookings,
+    BookingAvailabilityBlocks,
+  ],
   editor: lexicalEditor(),
   db: postgresAdapter({
-    pool: {
-      connectionString: process.env.DATABASE_URI!,
-    },
+    pool: { connectionString: DATABASE_URI },
     prodMigrations: [],
   }),
   plugins: [
-    createPuckPlugin({
-      pagesCollection: 'pages',
-    }),
+    createPuckPlugin({ pagesCollection: 'pages' }),
     vercelBlobStorage({
       enabled: process.env.NODE_ENV === 'production',
       collections: { media: true },
       token: process.env.BLOB_READ_WRITE_TOKEN ?? '',
       clientUploads: true,
-    }),
-    stripePlugin({
-      stripeSecretKey: process.env.STRIPE_SECRET_KEY ?? '',
-      stripeWebhooksEndpointSecret: process.env.STRIPE_WEBHOOK_SECRET ?? '',
-      webhooks: {
-        'checkout.session.completed': async ({ event, payload }) => {
-          const session = event.data.object as any
-          payload.logger.info({ msg: 'Payment complete (platform hook)', session: session.id })
-        },
-        'customer.subscription.updated': async ({ event, payload }) => {
-          payload.logger.info({ msg: 'Subscription updated', id: (event.data.object as any).id })
-        },
-      },
     }),
     seoPlugin({
       collections: ['pages', 'properties'],
@@ -75,7 +68,7 @@ export default buildConfig({
         `${(doc as any)?.title ?? ''} — Christian Property Management`,
       generateDescription: ({ doc }) => (doc as any)?.excerpt ?? '',
       generateURL: ({ doc, collectionConfig }) =>
-        `${process.env.NEXT_PUBLIC_SERVER_URL}/${collectionConfig?.slug}/${(doc as any)?.slug}`,
+        `${process.env.NEXT_PUBLIC_SERVER_URL ?? ''}/${collectionConfig?.slug ?? ''}/${(doc as any)?.slug ?? ''}`,
     }),
     formBuilderPlugin({
       fields: { payment: false },
@@ -96,7 +89,8 @@ export default buildConfig({
     nestedDocsPlugin({
       collections: ['pages'],
       generateLabel: (_, doc) => (doc as any).title ?? '',
-      generateURL: (docs) => docs.reduce((url, doc) => `${url}/${(doc as any).slug}`, ''),
+      generateURL: (docs) =>
+        docs.reduce((url, doc) => `${url}/${(doc as any).slug}`, ''),
     }),
     searchPlugin({
       collections: ['pages', 'properties'],
@@ -114,12 +108,8 @@ export default buildConfig({
     apiKey: process.env.RESEND_API_KEY ?? '',
   }),
   sharp,
-  cors: [
-    process.env.NEXT_PUBLIC_SERVER_URL ?? 'http://localhost:3000',
-  ],
-  csrf: [
-    process.env.NEXT_PUBLIC_SERVER_URL ?? 'http://localhost:3000',
-  ],
+  cors: [process.env.NEXT_PUBLIC_SERVER_URL ?? 'http://localhost:3000'],
+  csrf: [process.env.NEXT_PUBLIC_SERVER_URL ?? 'http://localhost:3000'],
   typescript: {
     outputFile: path.resolve(dirname, 'src/payload-types.ts'),
   },

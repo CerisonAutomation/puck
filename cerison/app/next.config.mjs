@@ -8,6 +8,7 @@ const nextConfig = {
       'lucide-react',
       '@radix-ui/react-accordion',
       '@radix-ui/react-dialog',
+      '@measured/puck',
     ],
   },
 

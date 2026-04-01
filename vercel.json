@@ -1,4 +1,22 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "nextjs"
+  "buildCommand": "cd cerison/app && npm install --legacy-peer-deps && npm run build",
+  "installCommand": "cd cerison/app && npm install --legacy-peer-deps",
+  "outputDirectory": "cerison/app/.next",
+  "framework": "nextjs",
+  "regions": ["iad1"],
+  "headers": [
+    {
+      "source": "/_next/static/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    },
+    {
+      "source": "/admin/(.*)",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
+      ]
+    }
+  ]
 }
