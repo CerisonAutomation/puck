@@ -1,16 +1,64 @@
-@import url("https://rsms.me/inter/inter.css");
+/* ===== Cerison Puck — Global Styles ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-body {
-  font-family: Inter, -apple-system, BlinkMacSystemFont, Segoe UI,
-    Helvetica Neue, sans-serif, Apple Color Emoji, Segoe UI Emoji,
-    Segoe UI Symbol;
-  margin: 0;
+html {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  scroll-behavior: smooth;
 }
 
-@supports (font-variation-settings: normal) {
-  body {
-    font-family: InterVariable, -apple-system, BlinkMacSystemFont, Segoe UI,
-      Helvetica Neue, sans-serif, Apple Color Emoji, Segoe UI Emoji,
-      Segoe UI Symbol;
-  }
+body {
+  font-family: -apple-system, 'Segoe UI', sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  background: #f7f6f2;
+  color: #28251d;
+  min-height: 100dvh;
+}
+
+/* Editor fills the viewport */
+.puck-editor-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+}
+
+/* Preview render page */
+.puck-preview {
+  min-height: 100vh;
+}
+
+/* Toolbar overrides */
+[class*='Puck-header'] {
+  background: #1c1b19 !important;
+  border-bottom: 1px solid #393836 !important;
+}
+
+/* Sidebar panel */
+[class*='SideBar'] {
+  background: #f9f8f5 !important;
+}
+
+/* Focus rings */
+:focus-visible {
+  outline: 2px solid #01696f;
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.25); }
+
+/* Animations */
+@keyframes fadeIn  { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+.animate-fade-in  { animation: fadeIn  200ms ease forwards; }
+.animate-slide-up { animation: slideUp 280ms cubic-bezier(.16,1,.3,1) forwards; }
+
+/* Print: hide editor chrome */
+@media print {
+  [class*='Puck-header'], [class*='SideBar'], [class*='ActionBar'] { display: none !important; }
 }

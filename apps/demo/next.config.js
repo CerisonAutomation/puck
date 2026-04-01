@@ -1,4 +1,18 @@
+/** @type {import('next').NextConfig} */
 module.exports = {
   reactStrictMode: true,
-  transpilePackages: ["@puckeditor/core", "lucide-react"],
+  transpilePackages: [
+    '@measured/puck',
+    '@measured/puck-plugin-heading-analyzer',
+    '@measured/puck-plugin-emotion-cache',
+    'lucide-react',
+  ],
+  images: {
+    remotePatterns: [
+      { protocol: 'https', hostname: '**' },
+    ],
+  },
+  experimental: {
+    optimizeCss: true,
+  },
 };
