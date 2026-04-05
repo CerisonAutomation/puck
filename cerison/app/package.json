@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "next": "15.2.3",
+    "next": "15.3.1",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "payload": "3.28.1",
@@ -28,9 +28,9 @@
     "@payloadcms/plugin-nested-docs": "3.28.1",
     "@payloadcms/plugin-search": "3.28.1",
     "@delmaredigital/payload-puck": "0.6.22",
-    "@measured/puck": "0.20.1",
-    "@measured/puck-plugin-heading-analyzer": "0.20.1",
-    "@measured/puck-plugin-emotion-cache": "0.20.1",
+    "@puckeditor/core": "0.20.1",
+    "@puckeditor/plugin-heading-analyzer": "0.20.1",
+    "@puckeditor/plugin-emotion-cache": "0.20.1",
     "gsap": "3.12.5",
     "@gsap/react": "2.1.1",
     "sharp": "0.33.3",
@@ -59,7 +59,7 @@
     "autoprefixer": "10.4.19",
     "postcss": "8.4.38",
     "eslint": "8.57.0",
-    "eslint-config-next": "15.2.3"
+    "eslint-config-next": "15.3.1"
   },
   "engines": {
     "node": ">=20.0.0"

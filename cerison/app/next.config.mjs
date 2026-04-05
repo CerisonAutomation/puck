@@ -1,16 +1,21 @@
-import { withPayload } from '@payloadcms/next'
+import { withPayload } from '@payloadcms/next/withPayload'
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  reactStrictMode: true,
+
   experimental: {
     reactCompiler: false,
     optimizePackageImports: [
       'lucide-react',
       '@radix-ui/react-accordion',
       '@radix-ui/react-dialog',
-      '@measured/puck',
+      '@puckeditor/core',
     ],
   },
+
+  // Prevent Payload CMS from being bundled client-side — must stay server-only
+  serverExternalPackages: ['@payloadcms/next', 'payload', '@payloadcms/db-postgres'],
 
   images: {
     formats: ['image/avif', 'image/webp'],
@@ -42,7 +47,10 @@ const nextConfig = {
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
-          { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=63072000; includeSubDomains; preload',
+          },
         ],
       },
       {
